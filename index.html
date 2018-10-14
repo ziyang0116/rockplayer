@@ -1,0 +1,305 @@
+<head>
+
+    <link href="https://vjs.zencdn.net/7.2.3/video-js.css" rel="stylesheet">
+    <link href="./css/subtitle.css" rel="stylesheet" media="screen" type="text/css"/>
+</head>
+
+<body>
+<div id="holder">
+    <div id="video-container">
+        <video id="my-video" class="video-js" controls preload="auto" width="1000" height="auto"
+               poster="MY_VIDEO_POSTER.jpg" data-setup="{}"
+               autoplay="true">
+            <source src="E:\\code\\electron-quick-start\\1.mkv" type='video/mp4'>
+            <!--<source src="E:\\01.mp4" , type="video/mkv">-->
+            <!--<source  src="E:\\test\\Ant.Man.and.the.Wasp.2018.1080p.WEB-DL.DD5.1.H264-FGT.mkv" type="video/webm">-->
+            <!--<source src="MY_VIDEO.webm" type='video/webm'>-->
+            <!--<track id="subtitle-en" kind="subtitles" src="test.vtt" srclang="en" label="English">-->
+            <p class="vjs-no-js">
+                To view this video please enable JavaScript, and consider upgrading to a web browser that
+                <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
+            </p>
+        </video>
+    </div>
+    <div id="zimu-container">
+        <ul id="zimu-list"></ul>
+    </div>
+</div>
+<script src="https://vjs.zencdn.net/7.2.3/video.js"></script>
+
+<script>
+
+    function formatTime(str) {
+        if (!str) {
+            return -1;
+        }
+        var arr = str.split(".");
+        if (arr.length != 2) {
+            return -1;
+        }
+        var firstArr = arr[0].split(":");
+        if (firstArr.length != 3) {
+            return -1;
+        }
+        var second = -1;
+        try {
+            second = parseInt(firstArr[0]) * 3600 + parseInt(firstArr[1]) * 60 + parseInt(firstArr[2])
+                + parseInt(arr[1]) * 0.001;
+        } catch (exception) {
+
+        }
+        return second;
+    }
+
+    function searchSubtitle(subtitles, index, timeupdate) {
+        if (!subtitles || index < 0 || subtitles.length === 0) {
+            return null;
+        }
+        var currentTitle = subtitles[index];
+        if (!currentTitle.endTime || timeupdate > currentTitle.endTime) {
+            for (var i = index + 1; i < subtitles.length; i++) {
+                var title = subtitles[i];
+                if (timeupdate < title.beginTime) {
+                    return null;
+                } else if (timeupdate >= title.beginTime && timeupdate <= title.endTime) {
+                    return {newIndex: i, subtitle: title};
+                } else {
+                    continue;
+                }
+            }
+        }
+        return null;
+    }
+
+    function parceVtt(path, callback) {
+        var fs = require('fs');
+
+        var subtitles = [];
+        fs.readFile(path, 'utf8', function (err, data) {
+            if (err) {
+                console.log(err);
+                if (callback) {
+                    callback(err);
+                }
+                return;
+            }
+            if (data) {
+                var arr = data.split("\n");
+                var currentTitle = {};
+                var currentTitleIndex = 0;
+                for (index in arr) {
+                    if (index === "0") {
+                        continue;
+                    }
+                    var line = arr[index];
+                    if (line.trim().length === 0) {
+                        currentTitleIndex = 0;
+                        if (currentTitle.title) {
+                            subtitles.push(currentTitle);
+                        }
+                        currentTitle = {};
+                        continue;
+                    }
+                    switch (currentTitleIndex) {
+                        case 0:
+                            currentTitle = {};
+                            currentTitle.index = line.trim();
+                            break;
+                        case 1:
+                            var timestamp = line.split("-->");
+                            if (timestamp.length === 2) {
+                                currentTitle.begin = timestamp[0].trim();
+                                currentTitle.beginTime = formatTime(currentTitle.begin);
+                                currentTitle.end = timestamp[1].trim();
+                                currentTitle.endTime = formatTime(currentTitle.end);
+                            }
+                            break;
+                        default:
+                            if (currentTitle.title) {
+                                currentTitle.title += line.trim();
+                            } else {
+                                currentTitle.title = line.trim();
+                            }
+                            break;
+                    }
+                    ++currentTitleIndex;
+                }
+            }
+            if (callback) {
+                callback(false, subtitles);
+            }
+        });
+    }
+
+    var replayTimeout;
+    var replaying = false;
+
+    function replay(begin, long) {
+        replaying = true;
+        var player = videojs("my-video");
+        player.currentTime(begin);
+        player.play();
+        clearTimeout(replayTimeout);
+        replayTimeout = setTimeout(() => {
+            player.pause();
+            replaying = false;
+        }, long * 1000)
+    }
+
+    function clearCurrentTitleStyle() {
+        var list = document.getElementById("zimu-list");
+        var children = list.childNodes;
+        for (var i = 0; i < children.length; i++) {
+            var child = children[i];
+            child.childNodes[1].removeAttribute("class");
+        }
+    }
+
+    function renderSubtitle(subtitles) {
+        var list = document.getElementById("zimu-list");
+        while (list.hasChildNodes()) {
+            list.removeChild(list.lastChild);
+        }
+        for (var i = 0; i < subtitles.length; i++) {
+            var subtitle = subtitles[i];
+            var node = document.createElement("LI");
+            var text = "[" + subtitle.begin.substr(0, 8) + "]";
+            var textnode = document.createElement("span");
+            textnode.innerHTML = text;
+            node.appendChild(textnode)
+            var titleNode = document.createElement("span");
+            titleNode.innerHTML = subtitle.title;
+            titleNode.setAttribute("id", "title");
+            node.appendChild(titleNode);
+            var replayControl = document.createElement("BUTTON");
+            replayControl.setAttribute("class", "replay");
+            replayControl.setAttribute("data-begin", subtitle.beginTime);
+            replayControl.setAttribute("data-end", subtitle.endTime);
+            replayControl.innerHTML = "replay";
+            replayControl.onclick = (event) => {
+                clearCurrentTitleStyle();
+                var target = event.target;
+                target.parentNode.childNodes[1].setAttribute("class", "current-title");
+                var begin = parseFloat(event.target.getAttribute("data-begin"));
+                var end = parseFloat(event.target.getAttribute("data-end"));
+                replay(begin - 2, end - begin + 3);
+            }
+            node.appendChild(replayControl);
+
+            list.appendChild(node);
+        }
+        list.scrollTop = list.scrollHeight;
+    }
+
+    var zimuList = document.getElementById("zimu-list");
+
+    var subtitleIndex = 0;
+    var subtitles = [];
+
+    var vid = document.getElementById("my-video");
+    vid.ontimeupdate = () => {
+        var player = videojs("my-video");
+        if (replaying || player.paused()) {
+            // do nothing
+        } else {
+            moveSubtitle();
+        }
+    };
+
+    vid.onseeked = () => {
+        console.log("onseeked");
+        subtitleIndex = 0;
+    }
+
+    document.onkeydown = (event) => {
+        console.log("onkeypress", event);
+        if (event.code === "Space") {
+            var player = videojs("my-video");
+            if (player.paused()) {
+                player.play();
+            } else {
+                player.pause();
+            }
+            return false;
+        }
+    }
+
+    zimuList.onkeydown = (event)=>{
+
+    }
+
+
+
+    var player = videojs("my-video");
+    var newSettings = {
+        backgroundOpacity: '0',
+        edgeStyle: 'dropshadow',
+        fontPercent: 1.25,
+    };
+
+    player.textTrackSettings.setDefaults();
+    player.textTrackSettings.setValues(newSettings);
+    player.textTrackSettings.updateDisplay();
+
+    //    vid.oncanplay = ()=>{
+    //        console.log("oncanplay");
+    //        var player = videojs("my-video");
+    //        player.play();
+    //    }
+
+    function moveSubtitle() {
+        var result = searchSubtitle(subtitles, subtitleIndex, vid.currentTime);
+        if (result) {
+            clearCurrentTitleStyle();
+            subtitleIndex = result.newIndex;
+            var list = document.getElementById("zimu-list");
+            var children = list.childNodes;
+            var baseTop = list.firstChild.offsetTop;
+            if (result.newIndex < children.length) {
+                var child = children[result.newIndex];
+                var title = child.childNodes[1];
+                title.setAttribute("class", "current-title");
+                list.scrollTop = child.offsetTop + child.offsetHeight - baseTop - list.offsetHeight;
+            }
+        }
+    }
+
+    var holder = document.getElementById('holder');
+    holder.ondragover = function () {
+        return false;
+    };
+    holder.ondragleave = holder.ondragend = function () {
+        return false;
+    };
+    holder.ondrop = function (e) {
+        e.preventDefault();
+        var file = e.dataTransfer.files[0];
+        console.log('File you dragged here is', file.path);
+        return false;
+    };
+
+    var ipcRenderer = require('electron').ipcRenderer;
+    ipcRenderer.on('fileSelected', function (event, message) {
+        console.log(message);
+        vid.src = message;
+        var player = videojs("my-video");
+        player.play();
+    });
+
+    ipcRenderer.on("subtitleSelected", (event, message) => {
+        console.log(message);
+        var player = videojs("my-video");
+        var tracks = player.remoteTextTracks();
+        for (var i = 0; i < tracks.length; i++) {
+            player.removeRemoteTextTrack(tracks[i]);
+        }
+        const trackEl = player.addRemoteTextTrack({src: message, label: "English", "mode": "showing"}, true);
+        parceVtt(message, (err, data) => {
+            if (!err) {
+                subtitles = data;
+                renderSubtitle(subtitles);
+            }
+        })
+    })
+</script>
+</body>

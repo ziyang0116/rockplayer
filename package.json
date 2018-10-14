@@ -1,0 +1,19 @@
+{
+  "name": "rock-player",
+  "version": "1.0.0",
+  "description": "A electron video player",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "repository": "https://github.com/relaxrock/rockplayer",
+  "keywords": [
+    "Electron",
+    "Rock player"
+  ],
+  "author": "relaxrock",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "electron": "^3.0.0"
+  }
+}

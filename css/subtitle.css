@@ -1,0 +1,28 @@
+#holder {
+    width: 100%;
+    height: 100%;
+}
+
+#zimu-container {
+    width: auto;
+    height: 200px;
+}
+
+#zimu-list {
+    width: auto;
+    height: 200px;
+    overflow-y: scroll;
+    list-style-type:none;
+}
+
+#zimu-list>li{
+    height:30px;
+}
+
+span.current-title{
+    font-weight: bold;
+    font-size: 24px;
+}
+button.replay{
+    float:right;
+}
