@@ -8,9 +8,12 @@
 <div id="holder">
     <div id="video-container">
         <video id="my-video" class="video-js" controls preload="auto" width="1000" height="auto"
-               poster="MY_VIDEO_POSTER.jpg" data-setup="{}"
+                data-setup="{}"
                autoplay="true">
-            <source src="E:\\code\\electron-quick-start\\1.mkv" type='video/mp4'>
+            <!--<source src="E:\\code\\electron-quick-start\\1.mkv" type='video/mp4'>-->
+            <!--<source src="http://127.0.0.1:8888" type="video/flv" >-->
+            <source src="http://c2.web.yystatic.com/r/rc/main/main/1/60/main.swf?type=yyscene&amp;topSid=16592&amp;subSid=68615016"
+             type="video/mp4">
             <!--<source src="E:\\01.mp4" , type="video/mkv">-->
             <!--<source  src="E:\\test\\Ant.Man.and.the.Wasp.2018.1080p.WEB-DL.DD5.1.H264-FGT.mkv" type="video/webm">-->
             <!--<source src="MY_VIDEO.webm" type='video/webm'>-->
@@ -28,7 +31,6 @@
 <script src="https://vjs.zencdn.net/7.2.3/video.js"></script>
 
 <script>
-
     function formatTime(str) {
         if (!str) {
             return -1;
@@ -46,11 +48,9 @@
             second = parseInt(firstArr[0]) * 3600 + parseInt(firstArr[1]) * 60 + parseInt(firstArr[2])
                 + parseInt(arr[1]) * 0.001;
         } catch (exception) {
-
         }
         return second;
     }
-
     function searchSubtitle(subtitles, index, timeupdate) {
         if (!subtitles || index < 0 || subtitles.length === 0) {
             return null;
@@ -70,10 +70,8 @@
         }
         return null;
     }
-
-    function parceVtt(path, callback) {
+    function parseVtt(path, callback) {
         var fs = require('fs');
-
         var subtitles = [];
         fs.readFile(path, 'utf8', function (err, data) {
             if (err) {
@@ -231,6 +229,7 @@
 
 
     var player = videojs("my-video");
+    videojs.options.flash.swf = "./assets/video-js.swf";
     var newSettings = {
         backgroundOpacity: '0',
         edgeStyle: 'dropshadow',
@@ -294,7 +293,7 @@
             player.removeRemoteTextTrack(tracks[i]);
         }
         const trackEl = player.addRemoteTextTrack({src: message, label: "English", "mode": "showing"}, true);
-        parceVtt(message, (err, data) => {
+        parseVtt(message, (err, data) => {
             if (!err) {
                 subtitles = data;
                 renderSubtitle(subtitles);

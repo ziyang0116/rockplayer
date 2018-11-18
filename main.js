@@ -1,11 +1,34 @@
 // Modules to control application life and create native browser window
-const {app, BrowserWindow, Menu} = require('electron')
+import {app, BrowserWindow, Menu} from 'electron'
 const electron = require('electron');
 const ipcMain = require('electron').ipcMain;
+import {videoSupport, transAudioCodec, createVideoServer} from './app/ffmpeg-helper';
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
+let httpServer;
+
+function onVideoFileSeleted(videoFilePath) {
+    videoSupport(videoFilePath).then((checkResult) => {
+        if (checkResult.videoCodecSupport && checkResult.audioCodecSupport) {
+            mainWindow.webContents.send('fileSelected', videoFilePath);
+        }
+        if (checkResult.videoCodecSupport && !checkResult.audioCodecSupport) {
+            transAudioCodec(videoFilePath).then((videoPathTrans) => {
+                mainWindow.webContents.send('fileSelected', videoPathTrans);
+            })
+        }
+        if (!checkResult.videoCodecSupport) {
+            console.log("createVideoServer");
+            httpServer = createVideoServer(videoFilePath, checkResult);
+            if (httpServer) {
+                console.log("createVideoServer success");
+                mainWindow.loadFile('view/flv-index.html');
+            }
+        }
+    })
+}
 
 let application_menu = [
     {
@@ -21,9 +44,18 @@ let application_menu = [
                             {name: 'Movies', extensions: ['mkv', 'avi', 'mp4', 'rmvb']},
                         ]
                     }, (result) => {
-                        console.log(result)
+                        console.log(result);
+
                         if (result && mainWindow && result.length > 0) {
-                            mainWindow.webContents.send('fileSelected', result[0]);
+                            if(httpServer){
+                                console.log("httpServer.close");
+                                httpServer.close(()=>{
+                                    console.log("httpServer.close end");
+                                    onVideoFileSeleted(result[0])
+                                })
+                            } else{
+                                onVideoFileSeleted(result[0])
+                            }
                         }
                     });
                 }
@@ -39,7 +71,7 @@ let application_menu = [
                     }, (result) => {
                         console.log(result)
                         if (result && mainWindow && result.length > 0) {
-                            if(result[0].endsWith('.vtt')){
+                            if (result[0].endsWith('.vtt')) {
                                 mainWindow.webContents.send('subtitleSelected', result[0]);
                             } else {
                                 srtToVtt(result[0], (err, vttpath) => {
@@ -90,8 +122,9 @@ function createWindow() {
     mainWindow = new BrowserWindow({width: 1000, height: 800})
 
     // and load the index.html of the app.
-    mainWindow.loadFile('index.html')
+    mainWindow.loadFile('view/index.html')
     // Open the DevTools.
+    // mainWindow.loadFile('flv-index.html');
     // mainWindow.webContents.openDevTools()
 
     // Emitted when the window is closed.
