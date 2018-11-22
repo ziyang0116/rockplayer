@@ -1,5 +1,5 @@
 # rock-player
-Rock player,video player built with `electron` and `videojs`.
+A cross-platform video player based on `electron` and `ffmpeg`.
 
 ## To Use
 

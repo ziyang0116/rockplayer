@@ -70,12 +70,17 @@ var createVideoServer = function (videoSourcePath, checkResult) {
         let audioCodec = checkResult.audioCodecSupport ? 'copy' : 'aac';
         let command = ffmpeg()
             .input(videoSourcePath)
+            .nativeFramerate()
             .videoCodec("libx264")
             .audioCodec(audioCodec)
             .format('flv')
             .outputOptions(
                 '-tune zerolatency',
             )
+            .on('progress', function (progress) {
+                console.log('time: ' + progress.timemark);
+                console.log('fps:', + progress.currentFps);
+            })
             .on('error', function (err) {
                 console.log('An error occurred: ' + err.message);
             })
