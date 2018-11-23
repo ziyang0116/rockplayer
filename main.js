@@ -3,6 +3,7 @@ import {app, BrowserWindow, Menu} from 'electron'
 const electron = require('electron');
 const ipcMain = require('electron').ipcMain;
 import {videoSupport, transAudioCodec, createVideoServer} from './app/ffmpeg-helper';
+import VideoServer from './app/VideoServer';
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -21,7 +22,11 @@ function onVideoFileSeleted(videoFilePath) {
         }
         if (!checkResult.videoCodecSupport) {
             console.log("createVideoServer");
-            httpServer = createVideoServer(videoFilePath, checkResult);
+            if(!httpServer){
+                httpServer = new VideoServer();
+            }
+            httpServer.videoSourceInfo = {videoSourcePath:videoFilePath, checkResult: checkResult};
+            httpServer.createServer();
             if (httpServer) {
                 console.log("createVideoServer success");
                 mainWindow.loadFile('view/flv-index.html');
@@ -47,15 +52,7 @@ let application_menu = [
                         console.log(result);
 
                         if (result && mainWindow && result.length > 0) {
-                            if(httpServer){
-                                console.log("httpServer.close");
-                                httpServer.close(()=>{
-                                    console.log("httpServer.close end");
-                                    onVideoFileSeleted(result[0])
-                                })
-                            } else{
                                 onVideoFileSeleted(result[0])
-                            }
                         }
                     });
                 }
