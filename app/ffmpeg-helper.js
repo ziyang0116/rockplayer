@@ -14,19 +14,21 @@ var videoSupport = function (videoPath) {
                     reject(err);
                     return;
                 }
-                console.log('videoPath metadata:');
-                console.dir(data);
                 var streams = data.streams;
                 var checkResult = {
                     videoCodecSupport: false,
                     audioCodecSupport: false,
+                    duration: data.format.duration
                 }
                 if (streams) {
                     streams.map((value) => {
-                        if (value.codec_type == 'video' && value.codec_name == 'h264') {
+                        // mp4, webm, ogg
+                        if (value.codec_type == 'video' && (value.codec_name == 'h264' || 
+                        value.codec_name == 'vp8' || value.codec_name == 'theora')) {
                             checkResult.videoCodecSupport = true;
                         }
-                        if (value.codec_type == 'audio' && value.codec_name == 'aac') {
+                        if (value.codec_type == 'audio' && (value.codec_name == 'aac' || 
+                        value.codec_name == 'vorbis')) {
                             checkResult.audioCodecSupport = true;
                         }
                     })
@@ -36,60 +38,4 @@ var videoSupport = function (videoPath) {
     });
     return p;
 }
-
-var transAudioCodec = function (videoPath) {
-    let p = new Promise(function (resolve, reject) {
-        let videoPathTrans = videoPath + ".mp4";
-        let command = ffmpeg()
-            .input(videoPath)
-            .videoCodec('copy')
-            .audioCodec('aac')
-            .format('mp4')
-            .output(videoPathTrans)
-            .on('error', function (err) {
-                console.log('An error occurred: ' + err.message);
-                reject(err);
-            })
-            .on('progress', function (progress) {
-                console.log('Processing: ' + progress.percent + '% done');
-            })
-            .on('end', function () {
-                console.log('Processing finished !:', videoPathTrans);
-                resolve(videoPathTrans);
-            })
-            .run();
-    })
-    return p;
-}
-
-var createVideoServer = function (videoSourcePath, checkResult) {
-    var http = require('http');
-    let videoStream = null;
-    return http.createServer(function (request, response) {
-        console.log("on request");
-        let audioCodec = checkResult.audioCodecSupport ? 'copy' : 'aac';
-        let command = ffmpeg()
-            .input(videoSourcePath)
-            .nativeFramerate()
-            .videoCodec("libx264")
-            .audioCodec(audioCodec)
-            .format('flv')
-            .outputOptions(
-                '-tune zerolatency',
-            )
-            .on('progress', function (progress) {
-                console.log('time: ' + progress.timemark);
-                console.log('fps:', + progress.currentFps);
-            })
-            .on('error', function (err) {
-                console.log('An error occurred: ' + err.message);
-            })
-            .on('end', function () {
-                console.log('Processing finished !');
-                videoStream = null;
-            })
-        videoStream = command.pipe();
-        videoStream.pipe(response);
-    }).listen(8888);
-}
-export {videoSupport, transAudioCodec, createVideoServer}
+export {videoSupport}

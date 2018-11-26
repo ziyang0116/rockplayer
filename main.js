@@ -1,27 +1,36 @@
 // Modules to control application life and create native browser window
-import {app, BrowserWindow, Menu} from 'electron'
+import {app, BrowserWindow, Menu, ipcMain} from 'electron'
 const electron = require('electron');
-const ipcMain = require('electron').ipcMain;
-import {videoSupport, transAudioCodec, createVideoServer} from './app/ffmpeg-helper';
+import {videoSupport} from './app/ffmpeg-helper';
 import VideoServer from './app/VideoServer';
+import {srtToVtt} from './app/subtitle-helper';
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
+const INDEX_HTML = 'view/index.html';
+const INDEX_STREAM_HTML = 'view/index-stream.html';
 let mainWindow;
 let httpServer;
+let currentLoadFile;
 
 function onVideoFileSeleted(videoFilePath) {
     videoSupport(videoFilePath).then((checkResult) => {
         if (checkResult.videoCodecSupport && checkResult.audioCodecSupport) {
-            mainWindow.webContents.send('fileSelected', videoFilePath);
+            if(httpServer){
+                httpServer.killFfmpegCommand();
+            }
+            if(currentLoadFile == INDEX_HTML) {
+                mainWindow.webContents.send('fileSelected', videoFilePath);
+            } else{
+                ipcMain.once("ipcRendererReady", (event, args)=>{
+                    mainWindow.webContents.send('fileSelected', videoFilePath);
+                })
+                mainWindow.loadFile(INDEX_HTML);
+                currentLoadFile = INDEX_HTML;
+
+            }
         }
-        if (checkResult.videoCodecSupport && !checkResult.audioCodecSupport) {
-            transAudioCodec(videoFilePath).then((videoPathTrans) => {
-                mainWindow.webContents.send('fileSelected', videoPathTrans);
-            })
-        }
-        if (!checkResult.videoCodecSupport) {
-            console.log("createVideoServer");
+        if (!checkResult.videoCodecSupport || !checkResult.audioCodecSupport) {
             if(!httpServer){
                 httpServer = new VideoServer();
             }
@@ -29,7 +38,11 @@ function onVideoFileSeleted(videoFilePath) {
             httpServer.createServer();
             if (httpServer) {
                 console.log("createVideoServer success");
-                mainWindow.loadFile('view/flv-index.html');
+                ipcMain.once("ipcRendererReady", (event, args)=>{
+                    mainWindow.webContents.send('duration', checkResult.duration);
+                })
+                mainWindow.loadFile(INDEX_STREAM_HTML);
+                currentLoadFile = INDEX_STREAM_HTML;
             }
         }
     })
@@ -37,7 +50,7 @@ function onVideoFileSeleted(videoFilePath) {
 
 let application_menu = [
     {
-        label: 'menu1',
+        label: 'File',
         submenu: [
             {
                 label: 'Open',
@@ -46,7 +59,7 @@ let application_menu = [
                     electron.dialog.showOpenDialog({
                         properties: ['openFile'],
                         filters: [
-                            {name: 'Movies', extensions: ['mkv', 'avi', 'mp4', 'rmvb']},
+                            {name: 'Movies', extensions: ['mkv', 'avi', 'mp4', 'rmvb', 'flv', 'ogv','webm', '3gp', 'mov']},
                         ]
                     }, (result) => {
                         console.log(result);
@@ -86,7 +99,7 @@ let application_menu = [
         ]
     },
     {
-        label: 'View',
+        label: 'Tools',
         submenu: [
             {
                 label: 'Reload',
@@ -119,9 +132,9 @@ function createWindow() {
     mainWindow = new BrowserWindow({width: 1000, height: 800})
 
     // and load the index.html of the app.
-    mainWindow.loadFile('view/index.html')
+    mainWindow.loadFile(INDEX_HTML)
+    currentLoadFile = INDEX_HTML;
     // Open the DevTools.
-    // mainWindow.loadFile('flv-index.html');
     // mainWindow.webContents.openDevTools()
 
     // Emitted when the window is closed.
@@ -134,6 +147,10 @@ function createWindow() {
 
     var menu = Menu.buildFromTemplate(application_menu);
     Menu.setApplicationMenu(menu);
+    ipcMain.on('fileDrop', (event, arg)=>{
+        console.log("fileDrop:", arg);
+        onVideoFileSeleted(arg);
+    });
 }
 
 // This method will be called when Electron has finished
@@ -158,37 +175,7 @@ app.on('activate', function () {
     }
 })
 
-function srtToVtt(srtPath, callback) {
-    const readline = require('readline');
-    const fs = require('fs');
 
-    const rl = readline.createInterface({
-        input: fs.createReadStream(srtPath),
-        crlfDelay: Infinity
-    });
-    var lines = "WEBVTT\n\n";
-    rl.on('line', (line) => {
-        // console.log(`Line from file: ${line}`);
-        if (line.indexOf("-->") != -1) {
-            line = line.split(',').join('.')
-        }
-        lines += line + "\n";
-    }).on('close', () => {
-        console.log("close");
-        console.log(lines);
-        var vttPath = srtPath + ".vtt";
-        fs.writeFile(vttPath, lines, function (err) {
-            if (err) {
-                if (callback) {
-                    callback(err);
-                }
-            } else {
-                callback(false, vttPath)
-            }
-        });
-
-    });
-}
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.

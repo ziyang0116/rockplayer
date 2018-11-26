@@ -4,7 +4,7 @@
   "description": "A electron video player",
   "main": "main.js",
   "scripts": {
-    "start": "electron -r babel-register ."
+    "start": "electron --inspect=5858 -r babel-register ."
   },
   "repository": "https://github.com/relaxrock/rockplayer",
   "keywords": [
@@ -26,7 +26,6 @@
   },
   "dependencies": {
     "electron": "3.0.0",
-    "flv.js": "1.4.2",
     "@ffmpeg-installer/ffmpeg": "1.0.16",
     "fluent-ffmpeg": "2.1.2",
     "@ffprobe-installer/ffprobe": "1.0.9"

@@ -3,19 +3,19 @@
     height: 100%;
 }
 
-#zimu-container {
+#subtitle-container {
     width: auto;
     height: 200px;
 }
 
-#zimu-list {
+#subtitle-list {
     width: auto;
     height: 200px;
     overflow-y: scroll;
     list-style-type:none;
 }
 
-#zimu-list>li{
+#subtitle-list>li{
     height:30px;
 }
 
