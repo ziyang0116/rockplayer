@@ -1,5 +1,11 @@
-# rock-player
+# Rock Player
 A cross-platform video player based on `electron` and `ffmpeg`.
+
+## Feature
+
+- Cross platform.
+- Plays most video files.
+- Subtitle panel, subtitle replay.
 
 ## To Use
 
