@@ -21,3 +21,14 @@ npm install
 # Run the app
 npm start
 ```
+package mac app:
+
+```bash
+npm run package:mac:app
+```
+
+package mac dmg:
+
+```bash
+npm run package:mac:dmg
+```
