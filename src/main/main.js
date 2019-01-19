@@ -1,14 +1,16 @@
 // Modules to control application life and create native browser window
-import {app, BrowserWindow, Menu, ipcMain} from 'electron'
+// import {app, BrowserWindow, Menu, ipcMain} from 'electron'
+const { app, BrowserWindow, Menu, ipcMain} = require('electron')
 const electron = require('electron');
-import {videoSupport} from './app/ffmpeg-helper';
-import VideoServer from './app/VideoServer';
-import {srtToVtt} from './app/subtitle-helper';
+const dialog = require('electron').dialog;
+import {videoSupport} from './ffmpeg-helper';
+import VideoServer from './VideoServer';
+import {srtToVtt} from './subtitle-helper';
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
-const INDEX_HTML = 'view/index.html';
-const INDEX_STREAM_HTML = 'view/index-stream.html';
+const INDEX_HTML = 'src/renderer/index.html';
+const INDEX_STREAM_HTML = 'src/renderer/index-stream.html';
 let mainWindow;
 let httpServer;
 let currentLoadFile;
@@ -45,6 +47,17 @@ function onVideoFileSeleted(videoFilePath) {
                 currentLoadFile = INDEX_STREAM_HTML;
             }
         }
+    }).catch((err)=>{
+        console.log("video format error", err);
+        const options = {
+            type: 'info',
+            title: 'Error',
+            message: "It is not a video file!",
+            buttons: ['OK']
+          }
+          dialog.showMessageBox(options, function (index) {
+            console.log("showMessageBox", index);
+          })
     })
 }
 
@@ -53,14 +66,14 @@ let application_menu = [
         label: 'File',
         submenu: [
             {
-                label: 'Open',
+                label: 'Open video',
                 accelerator: 'CmdOrCtrl+O',
                 click: () => {
                     electron.dialog.showOpenDialog({
                         properties: ['openFile'],
-                        filters: [
-                            {name: 'Movies', extensions: ['mkv', 'avi', 'mp4', 'rmvb', 'flv', 'ogv','webm', '3gp', 'mov']},
-                        ]
+                        // filters: [
+                        //     {name: 'Movies', extensions: ['mkv', 'avi', 'mp4', 'rmvb', 'flv', 'ogv','webm', '3gp', 'mov']},
+                        // ]
                     }, (result) => {
                         console.log(result);
 
@@ -71,7 +84,8 @@ let application_menu = [
                 }
             },
             {
-                label: 'Subtitile',
+                label: 'Opne subtitile',
+                accelerator: 'CmdOrCtrl+P',
                 click: () => {
                     electron.dialog.showOpenDialog({
                         properties: ['openFile'],
@@ -174,6 +188,9 @@ app.on('activate', function () {
         createWindow()
     }
 })
+// fix:Uncaught (in promise) DOMException: play() failed because the user didn't interact with the document first
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+
 
 
 

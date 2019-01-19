@@ -40,8 +40,8 @@ export default class VideoServer {
         return this._videoSourceInfo;
     }
 
-    killFfmpegCommand(){
-        if(this._ffmpegCommand){
+    killFfmpegCommand() {
+        if (this._ffmpegCommand) {
             this._ffmpegCommand.kill();
         }
     }

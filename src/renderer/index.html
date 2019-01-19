@@ -7,7 +7,7 @@
 <body>
     <div id="holder">
         <div id="video-container">
-            <video id="my-video" class="video-js" controls preload="auto" width="1000" height="auto" data-setup="{}"
+            <video id="my-video" class="video-js vjs-big-play-centered" controls preload="auto" width="970" height="auto" data-setup="{}"
                 autoplay="true">
                 <source src="https://video.pc6.com/v/1807/dyzbzmktxinxg.mp4" type="video/mp4">
                 <p class="vjs-no-js">
@@ -88,6 +88,9 @@
 
         ipcRenderer.on('fileSelected', function (event, message) {
             console.log(message);
+            player.on('ready', function() {
+                console.log(ready);
+            });
             vid.src = message;
             player.play();
         });

@@ -2,9 +2,21 @@
   "name": "rock-player",
   "version": "1.0.0",
   "description": "A electron video player",
-  "main": "main.js",
+  "main": "dist/main/main.js",
   "scripts": {
-    "start": "electron --inspect=5858 -r babel-register ."
+    "start": "npm run compile && electron --inspect=5858 .",
+    "compile": "gulp --gulpfile config/gulpfile.js --cwd .",
+    "package:mac:app": "npm run compile && electron-packager ./ rockplayer --overwrite --app-version=1.0.0 --platform=darwin --arch=all --out=./out ",
+    "package:mac:dmg": "npm run package:mac:app && electron-installer-dmg out/rockplayer-darwin-x64/rockplayer.app rockplayer --out=./out"
+  },
+  "build": {
+    "appId": "com.electron.rock-player",
+    "mac": {
+      "category": "your.app.category.type"
+    },
+    "files": [
+      "./babelrc"
+    ]
   },
   "repository": "https://github.com/relaxrock/rockplayer",
   "keywords": [
@@ -14,20 +26,23 @@
   "author": "relaxrock",
   "license": "Apache-2.0",
   "devDependencies": {
-    "babel": "^6.5.2",
+    "@babel/core": "^7.2.2",
+    "@babel/preset-env": "^7.2.3",
+    "babel": "^6.23.0",
     "babel-plugin-transform-es2015-spread": "^6.8.0",
     "babel-plugin-transform-object-rest-spread": "^6.8.0",
     "babel-preset-es2015": "^6.9.0",
     "babelify": "^7.3.0",
-    "browserify": "^13.0.1",
-    "electron-packager": "^7.0.3",
+    "electron": "3.0.0",
+    "electron-installer-dmg": "^2.0.0",
+    "electron-packager": "13.0.1",
     "electron-reload": "^1.0.0",
-    "watchify": "^3.7.0"
+    "gulp": "^4.0.0",
+    "gulp-babel": "^7.0.1"
   },
   "dependencies": {
-    "electron": "3.0.0",
     "@ffmpeg-installer/ffmpeg": "1.0.16",
-    "fluent-ffmpeg": "2.1.2",
-    "@ffprobe-installer/ffprobe": "1.0.9"
+    "@ffprobe-installer/ffprobe": "1.0.9",
+    "fluent-ffmpeg": "2.1.2"
   }
 }
