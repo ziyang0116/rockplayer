@@ -29,7 +29,6 @@
             background-color: red;
             width: 0px;
             height: 25px;
-            border-right: 2px solid blue;
         }
 
         #showProgress {
@@ -40,6 +39,15 @@
 
         #duration {
             float: right;
+        }
+
+        #playBtn{
+            width: 80px;
+            height: 40px;
+            margin-top: 8px;
+            margin-left:8px;
+            margin-bottom:8px;
+            font-size: 18px;
         }
     </style>
 </head>
@@ -60,7 +68,7 @@
                     <div><span id="currentTime">00:00:00</span><span id="duration"></span></div>
                 </div>
                 <div>
-                    <button id="playBtn" title="Play"> play</button>
+                    <button id="playBtn" title="play"> Play</button>
                 </div>
             </div>
         </div>
@@ -110,6 +118,7 @@
                 console.log('duration:', message)
                 actualDuration = message;
                 durationSpan.innerText = formatTime(message);
+                play();
             });
             ipcRenderer.send("ipcRendererReady", "true");
             
@@ -128,11 +137,11 @@
                         video.currentTime = 0;
                     }
                     video.play();
-                    playBtn.innerHTML = "pause";
+                    playBtn.innerHTML = "Pause";
                 }
                 else {
                     video.pause();
-                    playBtn.innerHTML = "play";
+                    playBtn.innerHTML = "Play";
                 }
             }
 
