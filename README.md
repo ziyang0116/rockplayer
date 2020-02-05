@@ -32,3 +32,9 @@ package mac dmg:
 ```bash
 npm run package:mac:dmg
 ```
+
+package windows app:
+
+```bash
+npm run package:win32
+```
