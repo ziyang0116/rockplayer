@@ -8,7 +8,7 @@
     "compile": "gulp --gulpfile config/gulpfile.js --cwd .",
     "package:mac:app": "npm run compile && electron-packager ./ rockplayer --overwrite --app-version=1.0.0 --platform=darwin --arch=all --out=./out ",
     "package:mac:dmg": "npm run package:mac:app && electron-installer-dmg out/rockplayer-darwin-x64/rockplayer.app rockplayer --out=./out",
-    "package:win32": "npm run compile && electron-packager ./ rock-player --overwrite --app-version=1.0.0 --platform=win32 --arch=x64 --out=./out ",
+    "package:win32": "npm run compile && electron-packager ./ rock-player --overwrite --app-version=1.0.0 --platform=win32 --arch=x64 --out=./out "
   },
   "build": {
     "appId": "com.electron.rock-player",
