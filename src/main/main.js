@@ -1,72 +1,102 @@
 // Modules to control application life and create native browser window
 // import {app, BrowserWindow, Menu, ipcMain} from 'electron'
-const { app, BrowserWindow, Menu, ipcMain} = require('electron')
+const { app, BrowserWindow, Menu, ipcMain } = require('electron')
 const electron = require('electron');
 const dialog = require('electron').dialog;
-import {videoSupport} from './ffmpeg-helper';
+import { videoSupport } from './ffmpeg-helper';
 import VideoServer from './VideoServer';
-import {srtToVtt} from './subtitle-helper';
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 const INDEX_HTML = 'src/renderer/index.html';
-const INDEX_STREAM_HTML = 'src/renderer/index-stream.html';
+
 let mainWindow;
 let httpServer;
-let currentLoadFile;
+let isRendererReady = false;
 
 function onVideoFileSeleted(videoFilePath) {
     videoSupport(videoFilePath).then((checkResult) => {
         if (checkResult.videoCodecSupport && checkResult.audioCodecSupport) {
-            if(httpServer){
+            if (httpServer) {
                 httpServer.killFfmpegCommand();
             }
-            if(currentLoadFile == INDEX_HTML) {
-                mainWindow.webContents.send('fileSelected', videoFilePath);
-            } else{
-                ipcMain.once("ipcRendererReady", (event, args)=>{
-                    mainWindow.webContents.send('fileSelected', videoFilePath);
-                })
-                mainWindow.loadFile(INDEX_HTML);
-                currentLoadFile = INDEX_HTML;
+            let playParams = {};
+            playParams.type = "native";
+            playParams.videoSource = videoFilePath;
+            if (isRendererReady) {
+                console.log("fileSelected=", playParams)
 
+                mainWindow.webContents.send('fileSelected', playParams);
+            } else {
+                ipcMain.once("ipcRendererReady", (event, args) => {
+                    console.log("fileSelected", playParams)
+                    mainWindow.webContents.send('fileSelected', playParams);
+                    isRendererReady = true;
+                })
             }
         }
         if (!checkResult.videoCodecSupport || !checkResult.audioCodecSupport) {
-            if(!httpServer){
+            if (!httpServer) {
                 httpServer = new VideoServer();
             }
-            httpServer.videoSourceInfo = {videoSourcePath:videoFilePath, checkResult: checkResult};
+            httpServer.videoSourceInfo = { videoSourcePath: videoFilePath, checkResult: checkResult };
             httpServer.createServer();
-            if (httpServer) {
-                console.log("createVideoServer success");
-                ipcMain.once("ipcRendererReady", (event, args)=>{
-                    mainWindow.webContents.send('duration', checkResult.duration);
+            console.log("createVideoServer success");
+            let playParams = {};
+            playParams.type = "stream";
+            playParams.videoSource = "http://127.0.0.1:8888?startTime=0";
+            playParams.duration = checkResult.duration
+            if (isRendererReady) {
+                console.log("fileSelected=", playParams)
+
+                mainWindow.webContents.send('fileSelected', playParams);
+            } else {
+                ipcMain.once("ipcRendererReady", (event, args) => {
+                    console.log("fileSelected", playParams)
+                    mainWindow.webContents.send('fileSelected', playParams);
+                    isRendererReady = true;
                 })
-                mainWindow.loadFile(INDEX_STREAM_HTML);
-                currentLoadFile = INDEX_STREAM_HTML;
             }
         }
-    }).catch((err)=>{
+    }).catch((err) => {
         console.log("video format error", err);
         const options = {
             type: 'info',
             title: 'Error',
             message: "It is not a video file!",
             buttons: ['OK']
-          }
-          dialog.showMessageBox(options, function (index) {
+        }
+        dialog.showMessageBox(options, function (index) {
             console.log("showMessageBox", index);
-          })
+        })
     })
 }
 
 let application_menu = [
     {
+        label: 'Rock Player',
+        submenu:[
+            {
+                label: 'About Rock Player',
+                click: () =>{
+                    let version = app.getVersion();
+                    
+                    const options = {
+                        type: 'info',
+                        title: 'About Rock Player',
+                        message: "Version: " + version + '\n' + "Github: \nhttps://github.com/ziyang0116/rockplayer\n" ,
+                        buttons: ['OK']
+                    }
+                    dialog.showMessageBox(options)
+                }
+            }
+        ]
+    },
+    {
         label: 'File',
         submenu: [
             {
-                label: 'Open video',
+                label: 'Open video...',
                 accelerator: 'CmdOrCtrl+O',
                 click: () => {
                     electron.dialog.showOpenDialog({
@@ -74,42 +104,16 @@ let application_menu = [
                         // filters: [
                         //     {name: 'Movies', extensions: ['mkv', 'avi', 'mp4', 'rmvb', 'flv', 'ogv','webm', '3gp', 'mov']},
                         // ]
-                    }, (result) => {
+                    }).then ((result) => {
                         console.log(result);
-
-                        if (result && mainWindow && result.length > 0) {
-                                onVideoFileSeleted(result[0])
-                        }
-                    });
-                }
-            },
-            {
-                label: 'Opne subtitile',
-                accelerator: 'CmdOrCtrl+P',
-                click: () => {
-                    electron.dialog.showOpenDialog({
-                        properties: ['openFile'],
-                        filters: [
-                            {name: 'subtitiles', extensions: ['srt', 'vtt']},
-                        ]
-                    }, (result) => {
-                        console.log(result)
-                        if (result && mainWindow && result.length > 0) {
-                            if (result[0].endsWith('.vtt')) {
-                                mainWindow.webContents.send('subtitleSelected', result[0]);
-                            } else {
-                                srtToVtt(result[0], (err, vttpath) => {
-                                    if (!err) {
-                                        console.log(vttpath)
-                                        mainWindow.webContents.send('subtitleSelected', vttpath);
-                                    }
-                                });
-                            }
+                        let canceled = result.canceled;
+                        let filePaths = result.filePaths;
+                        if (!canceled && mainWindow && filePaths.length > 0) {
+                            onVideoFileSeleted(filePaths[0])
                         }
                     });
                 }
             }
-
         ]
     },
     {
@@ -143,11 +147,22 @@ let application_menu = [
 
 function createWindow() {
     // Create the browser window.
-    mainWindow = new BrowserWindow({width: 1000, height: 800})
+    mainWindow = new BrowserWindow(
+        {
+            width: 1020,
+            height: 600,
+            webPreferences: {
+                nodeIntegration: true
+            }
+        })
 
     // and load the index.html of the app.
     mainWindow.loadFile(INDEX_HTML)
-    currentLoadFile = INDEX_HTML;
+
+    ipcMain.once("ipcRendererReady", (event, args) => {
+        console.log("ipcRendererReady")
+        isRendererReady = true;
+    })
     // Open the DevTools.
     // mainWindow.webContents.openDevTools()
 
@@ -161,7 +176,7 @@ function createWindow() {
 
     var menu = Menu.buildFromTemplate(application_menu);
     Menu.setApplicationMenu(menu);
-    ipcMain.on('fileDrop', (event, arg)=>{
+    ipcMain.on('fileDrop', (event, arg) => {
         console.log("fileDrop:", arg);
         onVideoFileSeleted(arg);
     });

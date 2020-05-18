@@ -61,7 +61,9 @@ export default class VideoServer {
                     .audioCodec(audioCodec)
                     .format('mp4')
                     .seekInput(startTime)
-                    .outputOptions('-movflags', 'frag_keyframe+empty_moov')
+                    .outputOptions(
+                        '-movflags', 'frag_keyframe+empty_moov+faststart',
+                        '-g', '18')
                     .on('progress', function (progress) {
                         console.log('time: ' + progress.timemark);
                     })

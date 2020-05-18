@@ -5,8 +5,8 @@
   "main": "dist/main/main.js",
   "scripts": {
     "start": "npm run compile && electron --inspect=5858 .",
-    "compile": "gulp --gulpfile config/gulpfile.js --cwd .",
-    "package:mac:app": "npm run compile && electron-packager ./ rockplayer --overwrite --app-version=1.0.0 --platform=darwin --arch=all --out=./out ",
+    "compile": "gulp --gulpfile config/gulpfile.js --cwd . && webpack",
+    "package:mac:app": "npm run compile && electron-packager ./ rockplayer --overwrite --app-version=1.0.0 --platform=darwin --arch=all --out=./out --verbose",
     "package:mac:dmg": "npm run package:mac:app && electron-installer-dmg out/rockplayer-darwin-x64/rockplayer.app rockplayer --out=./out",
     "package:win32": "npm run compile && electron-packager ./ rock-player --overwrite --app-version=1.0.0 --platform=win32 --arch=x64 --out=./out "
   },
@@ -19,7 +19,7 @@
       "./babelrc"
     ]
   },
-  "repository": "https://github.com/relaxrock/rockplayer",
+  "repository": "https://github.com/ziyang0116/rockplayer",
   "keywords": [
     "Electron",
     "Rock player"
@@ -27,23 +27,28 @@
   "author": "relaxrock",
   "license": "Apache-2.0",
   "devDependencies": {
-    "@babel/core": "^7.2.2",
+    "@babel/core": "^7.9.6",
     "@babel/preset-env": "^7.2.3",
     "babel": "^6.23.0",
-    "babel-plugin-transform-es2015-spread": "^6.8.0",
-    "babel-plugin-transform-object-rest-spread": "^6.8.0",
-    "babel-preset-es2015": "^6.9.0",
-    "babelify": "^7.3.0",
-    "electron": "3.0.0",
-    "electron-installer-dmg": "^2.0.0",
-    "electron-packager": "13.0.1",
+    "css-loader": "^3.5.3",
+    "electron": "8.3.0",
+    "electron-installer-dmg": "^3.0.0",
+    "electron-installer-windows": "^1.1.0",
+    "electron-packager": "^14.2.1",
     "electron-reload": "^1.0.0",
-    "gulp": "^4.0.0",
-    "gulp-babel": "^7.0.1"
+    "gulp": "^4.0.2",
+    "gulp-babel": "^8.0.0",
+    "style-loader": "^1.2.1",
+    "webpack": "^2.5.1",
+    "webpack-dev-server": "^2.4.5",
+    "webpack-target-electron-renderer": "^0.4.0"
+    
   },
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "1.0.16",
     "@ffprobe-installer/ffprobe": "1.0.9",
-    "fluent-ffmpeg": "2.1.2"
+    "babel-preset-es2015": "^6.24.1",
+    "fluent-ffmpeg": "2.1.2",
+    "video.js": "^7.7.5"
   }
 }
