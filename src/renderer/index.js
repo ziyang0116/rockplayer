@@ -1,5 +1,3 @@
-console.log('running in electron: ', 'true');
-
 import videojs from 'video.js';
 import 'video.js/dist/video-js.css';
 import './js/StreamPlayTech';

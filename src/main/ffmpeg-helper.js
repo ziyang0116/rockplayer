@@ -1,41 +1,68 @@
 'use strict';
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
-const ffprobePath = require('@ffprobe-installer/ffprobe').path;
-const ffmpeg = require('fluent-ffmpeg');
-ffmpeg.setFfmpegPath(ffmpegPath);
-ffmpeg.setFfprobePath(ffprobePath);
+const process = require('child_process');
+
+function findVideoInfo(reg, text) {
+    let matchArr = reg.exec(text);
+    let infoFound;
+    if (matchArr && matchArr.length > 1) {
+        infoFound = matchArr[1].trim();
+    }
+    return infoFound;
+}
+
+function transformDuration(duration) {
+    if (!duration) {
+        return 0;
+    }
+    let arr = duration.split(':');
+    if (arr.length == 3) {
+        return parseInt(arr[0]) * 3600 + parseInt(arr[1]) * 60 + parseInt(arr[2]);
+    }
+    return 0;
+}
 
 var videoSupport = function (videoPath) {
     let p = new Promise(function (resolve, reject) {
-        let command = ffmpeg()
-            .input(videoPath)
-            .ffprobe(function (err, data) {
-                if (err) {
-                    reject(err);
+        let command = `${ffmpegPath} -i '${videoPath}'`;
+        process.exec(command, { encoding: 'utf-8' }, function (error, stdout, stderr) {
+            if (error) {
+                let str = error.stack;
+                let videoReg = /Video:((\w|\s)+)/ig;
+                let videoCodec = findVideoInfo(videoReg, str);
+                let audioReg = /Audio:((\w|\s)+)/ig;
+                let audioCodec = findVideoInfo(audioReg, str);
+                let durationReg = /Duration:((\w|:|\s)+)/ig;
+                let duration = findVideoInfo(durationReg, str);
+                let durationSeconds = transformDuration(duration);
+                console.log("videoCodec:" + videoCodec +
+                    ",audioCodec:" + audioCodec +
+                    ",duration:" + durationSeconds)
+                if(!videoPath || !audioCodec || !durationSeconds){
+                    reject('err video file')
                     return;
                 }
-                var streams = data.streams;
                 var checkResult = {
                     videoCodecSupport: false,
                     audioCodecSupport: false,
-                    duration: data.format.duration
+                    duration: durationSeconds
                 }
-                if (streams) {
-                    streams.map((value) => {
-                        // mp4, webm, ogg
-                        if (value.codec_type == 'video' && (value.codec_name == 'h264' || 
-                        value.codec_name == 'vp8' || value.codec_name == 'theora')) {
-                            checkResult.videoCodecSupport = true;
-                        }
-                        if (value.codec_type == 'audio' && (value.codec_name == 'aac' || 
-                        value.codec_name == 'vorbis')) {
-                            checkResult.audioCodecSupport = true;
-                        }
-                    })
+                // mp4, webm, ogg
+                if (videoCodec == 'h264' ||
+                    videoCodec == 'vp8' || videoCodec == 'theora') {
+                    checkResult.videoCodecSupport = true;
+                }
+                // aac, vorbis
+                if (audioCodec == 'aac' ||
+                    audioCodec == 'vorbis') {
+                    checkResult.audioCodecSupport = true;
                 }
                 resolve(checkResult)
-            });
+                return;
+            }
+            reject('no video info:' + videoPath)
+        });
     });
     return p;
 }
-export {videoSupport}
+export { videoSupport }

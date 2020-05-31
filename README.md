@@ -3,9 +3,12 @@ A cross-platform video player based on `electron` and `ffmpeg`.
 
 ## Feature
 
-- Cross platform.
-- Plays most video files.
-- Subtitle panel, subtitle replay.
+- Cross platform(Mac, Windows).
+- Plays most video files(mp4, webm, ogg, mkv, rmvb...).
+
+## Snapshot
+
+![](doc/snapshot.png)
 
 ## To Use
 
