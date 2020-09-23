@@ -174,6 +174,10 @@ function createWindow() {
         mainWindow = null
     })
 
+    mainWindow.on('resize', function(){
+       mainWindow.webContents.send('resize')
+    })
+
     var menu = Menu.buildFromTemplate(application_menu);
     Menu.setApplicationMenu(menu);
     ipcMain.on('fileDrop', (event, arg) => {

@@ -3,10 +3,17 @@ import 'video.js/dist/video-js.css';
 import './js/StreamPlayTech';
 const ipcRenderer = require('electron').ipcRenderer;
 
-function createVideoHtml(source){
-    let videoHtml =
-    `<video id="my-video" class="video-js vjs-big-play-centered" controls preload="auto" width="1000"
-    height="560" data-setup="{}">
+
+function getWindowSize() {
+    const { clientWidth, clientHeight } = document.documentElement
+    return [clientWidth, clientHeight]
+}
+
+function createVideoHtml(source) {
+    const [width, height] = getWindowSize()
+    const videoHtml =
+        `<video id="my-video" class="video-js vjs-big-play-centered" controls preload="auto" width="${width}"
+    height="${height}" data-setup="{}">
     <source src="${source}" type="video/mp4">
     <p class="vjs-no-js">
     To view this video please enable JavaScript, and consider upgrading to a web browser that
@@ -56,6 +63,16 @@ document.onkeydown = (event) => {
         return false;
     }
 }
+
+ipcRenderer.on('resize', function () {
+    console.log('resize')
+    const vid = document.getElementById('my-video')
+    if (vid) {
+        const [width, height] = getWindowSize()
+        vid.style.width = width + 'px'
+        vid.style.height = height + 'px'
+    }
+});
 
 ipcRenderer.on('fileSelected', function (event, message) {
     console.log('fileSelected:', message)
