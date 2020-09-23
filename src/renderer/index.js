@@ -5,8 +5,12 @@ const ipcRenderer = require('electron').ipcRenderer;
 
 
 function getWindowSize() {
-    const { clientWidth, clientHeight } = document.documentElement
-    return [clientWidth, clientHeight]
+    const { offsetWidth, offsetHeight } = document.documentElement
+    const { innerHeight } = window // innerHeight will be blank in Windows system
+    return [
+        offsetWidth,
+        innerHeight > offsetHeight ? offsetHeight : innerHeight
+    ]
 }
 
 function createVideoHtml(source) {
