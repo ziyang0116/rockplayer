@@ -24,7 +24,7 @@ function transformDuration(duration) {
 
 var videoSupport = function (videoPath) {
     let p = new Promise(function (resolve, reject) {
-        let command = `${ffmpegPath} -i '${videoPath}'`;
+        let command = `${ffmpegPath} -i ${videoPath}`;
         process.exec(command, { encoding: 'utf-8' }, function (error, stdout, stderr) {
             if (error) {
                 let str = error.stack;
